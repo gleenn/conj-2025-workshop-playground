@@ -1,8 +1,10 @@
 # conj-2025-workshop-playground
 
+Hello. Welcome to the SciCloj "Functional Data Analysis in Clojure" workshop. 
+
 This repository provides an easy way to get going with Clojure's
-Data Toolkit using Noj. It is for the most part a clone of the
-[noj-v2-getting-started](https://github.com/scicloj/noj-v2-getting-started) project.
+Data Toolkit using Noj. Below you fill find requirements and setup
+instructions.
 
 # Requirements
 
