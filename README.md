@@ -33,5 +33,6 @@ Data Toolkit using Noj. It is for the most part a clone of the
     - Do this with either
       - `Ctrl+c Ctcl-Enter`
       - From the cmd palette: "Calva: Evaluate Top Level Form (defun) to Comment
+  - You should see somethign like:
 
     ![](test-output.png)
