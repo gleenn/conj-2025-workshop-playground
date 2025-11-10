@@ -29,11 +29,11 @@ Data Toolkit using Noj. It is for the most part a clone of the
    - If not run the "Calva: Start a Project Repl.." command from the command palette
 
 5. **Test thing are working**
-  - Open the `notebooks/test.clj` file
-  - Using Calva evaluate each expression
-    - Do this with either
-      - `Ctrl+c Ctcl-Enter`
-      - From the cmd palette: "Calva: Evaluate Top Level Form (defun) to Comment
-  - You should see something like:
+   - Open the `notebooks/test.clj` file
+   - Using Calva evaluate each expression
+     - Do this with either
+       - `Ctrl+c Ctcl-Enter`
+       - From the cmd palette: "Calva: Evaluate Top Level Form (defun) to Comment
+   - You should see something like:
 
-    ![](test-output.png)
+   ![desired output](test-output.png)
