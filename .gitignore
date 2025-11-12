@@ -4,4 +4,7 @@ docs/.clay*
 .calva
 .clj-kondo
 .lsp
-data/*
+data/*.idea
+.idea
+*.iml
+data

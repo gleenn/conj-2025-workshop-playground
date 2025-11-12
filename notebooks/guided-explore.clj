@@ -1,5 +1,6 @@
 (ns guided-explore.clj
   (:require [tablecloth.api :as tc]
+            [scicloj.clay.v2.api :as clay]
             [scicloj.tableplot.v1.plotly :as plotly]
             [scicloj.kindly.v4.kind :as kind]
             [java-time :as jt]
@@ -46,136 +47,158 @@
     first
     (->> (jt/local-date src-fmt)))
 
-;; So now let's try to plot some of these request types over time. We'll take
-;; the top five request types as set. 
-(def top-five-requests
-  (-> workshop-data
-      (tc/group-by [:REQUEST_TYPE])
-      (tc/aggregate {:COUNT tc/row-count})
-      (tc/order-by :COUNT :desc)
-      (tc/head 5)
-      :REQUEST_TYPE
-      set))
+;; ;; So now let's try to plot some of these request types over time. We'll take
+;; ;; the top five request types as set. 
+;; (def top-five-requests
+;;   (-> workshop-data
+;;       (tc/group-by [:REQUEST_TYPE])
+;;       (tc/aggregate {:COUNT tc/row-count})
+;;       (tc/order-by :COUNT :desc)
+;;       (tc/head 5)
+;;       :REQUEST_TYPE
+;;       set))
 
-;; And we'll want to roll these request counts up by some cadence. Let's try
-;; monthly by year. To do that we roll up date around the first day of each
-;; month.
+;; ;; (clay/make! {:single-form '(str "hello," " world!")})
 
-;; Let's first build a function that can convert time that way
-(defn ->first-day-of_month [datestr]
-  (jt/adjust
-   (jt/local-date src-fmt datestr)
-   :first-day-of-month))
+;; ;; And we'll want to roll these request counts up by some cadence. Let's try
+;; ;; monthly by year. To do that we roll up date around the first day of each
+;; ;; month.
 
-;; Test that it works. 
-(-> workshop-data
-    :RECEIVED_DATE
-    first
-    ->first-day-of_month)
+;; ;; Let's first build a function that can convert time that way
+;; (defn ->first-day-of_month [datestr]
+;;   (jt/adjust
+;;    (jt/local-date src-fmt datestr)
+;;    :first-day-of-month))
 
-;; Now let's work on the data prep
-(-> workshop-data
-    ;; first we want to select the samples that interest us
-    (tc/select-rows
-     (fn [row]
-       (-> row
-           :REQUEST_TYPE
-           top-five-requests)))
-    ;; now let's add a column for the roll up
-    (tc/add-column
-     :FIRST_DAY_OF_MONTH
-     (fn [ds]
-       (map ->first-day-of_month (:RECEIVED_DATE ds))))
-    ;; then we can do our grouping
-    (tc/group-by [:REQUEST_TYPE :FIRST_DAY_OF_MONTH])
-    (tc/aggregate {:COUNT tc/row-count}))
+;; ;; Test that it works. 
+;; (-> workshop-data
+;;     :RECEIVED_DATE
+;;     first
+;;     ->first-day-of_month)
 
-;; now we can plot but let's package this data up
-(def year-month-data
-  (-> workshop-data
-      ;; first we want to select the samples that interest us
-      (tc/select-rows
-       (fn [row]
-         (-> row
-             :REQUEST_TYPE
-             top-five-requests)))
-      ;; now let's add a column for the roll up
-      (tc/add-column
-       :FIRST_DAY_OF_MONTH
-       (fn [ds]
-         (map ->first-day-of_month (:RECEIVED_DATE ds))))
-      ;; then we can do our grouping
-      (tc/group-by [:REQUEST_TYPE :FIRST_DAY_OF_MONTH])
-      (tc/aggregate {:COUNT tc/row-count})
-      (tc/order-by :FIRST_DAY_OF_MONTH)))
+;; ;; Now let's work on the data prep
+;; (-> workshop-data
+;;     ;; first we want to select the samples that interest us
+;;     (tc/select-rows
+;;      (fn [row]
+;;        (-> row
+;;            :REQUEST_TYPE
+;;            top-five-requests)))
+;;     ;; now let's add a column for the roll up
+;;     (tc/add-column
+;;      :FIRST_DAY_OF_MONTH
+;;      (fn [ds]
+;;        (map ->first-day-of_month (:RECEIVED_DATE ds))))
+;;     ;; then we can do our grouping
+;;     (tc/group-by [:REQUEST_TYPE :FIRST_DAY_OF_MONTH])
+;;     (tc/aggregate {:COUNT tc/row-count}))
 
-;; Now let's plot it using tableplot + plotly. We'll try the layer-line function
-;; first
-(-> year-month-data
-    #_(tc/order-by :FIRST_DAY_OF_MONTH)
-    (plotly/layer-line
-     {:=x :FIRST_DAY_OF_MONTH
-      :=color :REQUEST_TYPE
-      :=y :COUNT}))
+;; ;; now we can plot but let's package this data up
+;; (def year-month-data
+;;   (-> workshop-data
+;;       ;; first we want to select the samples that interest us
+;;       (tc/select-rows
+;;        (fn [row]
+;;          (-> row
+;;              :REQUEST_TYPE
+;;              top-five-requests)))
+;;       ;; now let's add a column for the roll up
+;;       (tc/add-column
+;;        :FIRST_DAY_OF_MONTH
+;;        (fn [ds]
+;;          (map ->first-day-of_month (:RECEIVED_DATE ds))))
+;;       ;; then we can do our grouping
+;;       (tc/group-by [:REQUEST_TYPE :FIRST_DAY_OF_MONTH])
+;;       (tc/aggregate {:COUNT tc/row-count})
+;;       (tc/order-by :FIRST_DAY_OF_MONTH)))
 
-;; Still maybe we can improve the formatting a bit, move the legend
-;; above.
-(-> year-month-data
-    (plotly/base
-     {:=layout  {:legend
-                 {:orientation "h"
-                  :y 1.5}}})
-    (plotly/layer-line
-     {:=x :FIRST_DAY_OF_MONTH
-      :=color :REQUEST_TYPE
-      :=y :COUNT}))
+;; ;; Now let's plot it using tableplot + plotly. We'll try the layer-line function
+;; ;; first
+;; (-> year-month-data
+;;     #_(tc/order-by :FIRST_DAY_OF_MONTH)
+;;     (plotly/layer-line
+;;      {:=x :FIRST_DAY_OF_MONTH
+;;       :=color :REQUEST_TYPE
+;;       :=y :COUNT}))
 
-;; One can see a pattern here, but it's a bit hard to tell.  Let's try
-;; collapsing the year data and simply grouping by the month. We could also
-;; exclude 2020 (Covid!)
-(def month-data
-  (-> workshop-data
-      (tc/select-rows
-       (fn [row] (-> row
-                     :REQUEST_TYPE
-                     top-five-requests)))
-      ;; this time we'll use map-columns, another way to add a column
-      (tc/map-columns :MONTH
-                      [:RECEIVED_DATE]
-                      (fn [datestr]
-                        (->> datestr
-                             (jt/local-date src-fmt)
-                             jt/month
-                             jt/value)))
-      (tc/order-by :MONTH)))
+;; ;; Still maybe we can improve the formatting a bit, move the legend
+;; ;; above.
+;; (-> year-month-data
+;;     (plotly/base
+;;      {:=layout  {:legend
+;;                  {:orientation "h"
+;;                   :y 1.5}}})
+;;     (plotly/layer-line
+;;      {:=x :FIRST_DAY_OF_MONTH
+;;       :=color :REQUEST_TYPE
+;;       :=y :COUNT}))
 
-(-> month-data
-    (tc/group-by [:REQUEST_TYPE :MONTH])
-    (tc/aggregate {:COUNT tc/row-count})
-    (plotly/base
-     {:=layout {:xaxis {:dtick "M2"}
-                :legend
-                {:orientation "h"
-                 :y 1.5}}})
-    (plotly/layer-line
-     {:=x :MONTH
-      :=color :REQUEST_TYPE
-      :=y :COUNT}))
+;; ;; One can see a pattern here, but it's a bit hard to tell.  Let's try
+;; ;; collapsing the year data and simply grouping by the month. We could also
+;; ;; exclude 2020 (Covid!)
+;; (def month-data
+;;   (-> workshop-data
+;;       (tc/select-rows
+;;        (fn [row] (-> row
+;;                      :REQUEST_TYPE
+;;                      top-five-requests)))
+;;       ;; this time we'll use map-columns, another way to add a column
+;;       (tc/map-columns :MONTH
+;;                       [:RECEIVED_DATE]
+;;                       (fn [datestr]
+;;                         (->> datestr
+;;                              (jt/local-date src-fmt)
+;;                              jt/month
+;;                              jt/value)))
+;;       (tc/order-by :MONTH)))
 
-;; We'll wrap this intitial exploration up soon so there is time for you all to
-;; get your hands dirty with this, but one further observation here that is
-;; interesting. We saw above that the COVID year 2020 caused a great a large
-;; irregularity. Interestingly, we can see that show up here by excluding the
-;; outlier data from that year, we can see that the composite pattern of the
-;; yearly cycles changes here rather significantly.
+;; (-> month-data
+;;     (tc/group-by [:REQUEST_TYPE :MONTH])
+;;     (tc/aggregate {:COUNT tc/row-count})
+;;     (plotly/base
+;;      {:=layout {:xaxis {:dtick "M2"}
+;;                 :legend
+;;                 {:orientation "h"
+;;                  :y 1.5}}})
+;;     (plotly/layer-line
+;;      {:=x :MONTH
+;;       :=color :REQUEST_TYPE
+;;       :=y :COUNT}))
 
-(-> month-data
+;; ;; We'll wrap this intitial exploration up soon so there is time for you all to
+;; ;; get your hands dirty with this, but one further observation here that is
+;; ;; interesting. We saw above that the COVID year 2020 caused a great a large
+;; ;; irregularity. Interestingly, we can see that show up here by excluding the
+;; ;; outlier data from that year, we can see that the composite pattern of the
+;; ;; yearly cycles changes here rather significantly.
+
+;; (-> month-data
+;;     (tc/select-rows
+;;      (fn [row]
+;;        (-> row
+;;            :FISCAL_YEAR
+;;            (not= 2020))))
+;;     (tc/group-by [:REQUEST_TYPE :MONTH])
+;;     (tc/aggregate {:COUNT tc/row-count})
+;;     (plotly/base
+;;      {:=layout {:xaxis {:dtick "M2"}
+;;                 :legend
+;;                 {:orientation "h"
+;;                  :y 1.5}}})
+;;     (plotly/layer-line
+;;      {:=x :MONTH
+;;       :=color :REQUEST_TYPE
+;;       :=y :COUNT}))
+
+
+
+#_(-> month-data
     (tc/select-rows
      (fn [row]
        (-> row
            :FISCAL_YEAR
            (not= 2020))))
-    (tc/group-by [:REQUEST_TYPE :MONTH])
+    (tc/group-by [:REQUEST_TYPE :NEIGHBORHOOD_PROFILE_AREA])
     (tc/aggregate {:COUNT tc/row-count})
     (plotly/base
      {:=layout {:xaxis {:dtick "M2"}
@@ -183,6 +206,61 @@
                 {:orientation "h"
                  :y 1.5}}})
     (plotly/layer-line
-     {:=x :MONTH
+     {:=x :NEIGHBORHOOD_PROFILE_AREA
+      :=color :REQUEST_TYPE
+      :=y :COUNT}))
+
+
+;; (def attr :NEIGHBORHOOD_PROFILE_AREA)
+(def col :ZIP_CODE)
+
+(-> workshop-data
+    (tc/group-by col)
+    (tc/aggregate {:COUNT tc/row-count})
+    (tc/order-by :COUNT :desc) 
+    ;; (tc/head 10)
+    #_(plotly/base
+j     {:=layout {:xaxis {:dtick "M2"}
+                :legend
+                {:orientation "h"
+                 :y 1.5}}})
+    #_(tc/head 10000)
+    (tc/select-rows (fn [row] (< 1000 (:COUNT row))))
+    (plotly/layer-bar
+     {:=x col
+      ;; :=color col
+      :=y :COUNT}))
+
+(-> workshop-data
+    (tc/group-by col)
+    (tc/aggregate {:COUNT tc/row-count})
+    (tc/order-by :COUNT :desc)
+    ;; (tc/head 10)
+    #_(plotly/base
+       j     {:=layout {:xaxis {:dtick "M2"}
+                        :legend
+                        {:orientation "h"
+                         :y 1.5}}})
+    (tc/aggregate {:COUNT tc/max})
+    ;; (tc/select-rows (fn [row] (< 1000 (:COUNT row))))
+    )
+
+
+
+#_(-> workshop-data
+    (tc/select-rows
+     (fn [row]
+       (-> row
+           :FISCAL_YEAR
+           (not= 2020))))
+    (tc/group-by [:REQUEST_TYPE :NEIGHBORHOOD_PROFILE_AREA])
+    (tc/aggregate {:COUNT tc/row-count})
+    (plotly/base
+     {:=layout {:xaxis {:dtick "M2"}
+                :legend
+                {:orientation "h"
+                 :y 1.5}}})
+    (plotly/layer-line
+     {:=x :NEIGHBORHOOD_PROFILE_AREA
       :=color :REQUEST_TYPE
       :=y :COUNT}))
