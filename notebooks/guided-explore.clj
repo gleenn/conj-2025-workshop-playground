@@ -237,11 +237,12 @@ j     {:=layout {:xaxis {:dtick "M2"}
     (tc/order-by :COUNT :desc)
     ;; (tc/head 10)
     #_(plotly/base
-       j     {:=layout {:xaxis {:dtick "M2"}
+            {:=layout {:xaxis {:dtick "M2"}
                         :legend
                         {:orientation "h"
                          :y 1.5}}})
-    (tc/aggregate {:COUNT tc/max})
+    ;; (tc/aggregate {:COUNT tc/max})
+    ;; (tc/head 10)
     ;; (tc/select-rows (fn [row] (< 1000 (:COUNT row))))
     )
 
