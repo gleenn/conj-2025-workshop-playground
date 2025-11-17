@@ -242,7 +242,7 @@ j     {:=layout {:xaxis {:dtick "M2"}
                         {:orientation "h"
                          :y 1.5}}})
     ;; (tc/aggregate {:COUNT tc/max})
-    ;; (tc/head 10)
+    (tc/head 10)
     ;; (tc/select-rows (fn [row] (< 1000 (:COUNT row))))
     )
 
